@@ -13,6 +13,7 @@ interface DashboardCardProps {
   delay?: number;
   locked?: boolean;
   onLockedClick?: () => void;
+  onClick?: () => void;
 }
 
 export function DashboardCard({
@@ -23,7 +24,8 @@ export function DashboardCard({
   badge,
   delay = 0,
   locked = false,
-  onLockedClick
+  onLockedClick,
+  onClick
 }: DashboardCardProps) {
   const content = (
     <motion.div
@@ -52,6 +54,14 @@ export function DashboardCard({
   if (locked && onLockedClick) {
     return (
       <button onClick={onLockedClick} className="w-full text-left">
+        {content}
+      </button>
+    );
+  }
+
+  if (onClick) {
+    return (
+      <button onClick={onClick} className="w-full text-left">
         {content}
       </button>
     );
