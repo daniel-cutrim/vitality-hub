@@ -7,6 +7,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
+import Anamnese from "./pages/Anamnese";
 import Treino from "./pages/Treino";
 import Dieta from "./pages/Dieta";
 import Shopping from "./pages/Shopping";
@@ -26,6 +27,7 @@ const App = () => (
             <Route path="/" element={<Landing />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/anamnese" element={<Anamnese />} />
             <Route path="/treino" element={<Treino />} />
             <Route path="/dieta" element={<Dieta />} />
             <Route path="/shopping" element={<Shopping />} />
