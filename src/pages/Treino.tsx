@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
@@ -37,6 +38,7 @@ const mockWorkouts: WorkoutDay[] = [
 
 export default function Treino() {
   const { isPremium } = useAuth();
+  const navigate = useNavigate();
   const [showUpgrade, setShowUpgrade] = useState(false);
   const today = new Date().getDay();
   const adjustedToday = today === 0 ? 6 : today - 1;
@@ -46,7 +48,7 @@ export default function Treino() {
       setShowUpgrade(true);
       return;
     }
-    // Navigate to workout execution
+    navigate(`/treino/execucao/${workout.id}`);
   };
 
   return (
