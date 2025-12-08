@@ -9,6 +9,7 @@ import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Anamnese from "./pages/Anamnese";
 import Treino from "./pages/Treino";
+import WorkoutExecution from "./pages/WorkoutExecution";
 import Dieta from "./pages/Dieta";
 import Shopping from "./pages/Shopping";
 import Perfil from "./pages/Perfil";
@@ -29,6 +30,7 @@ const App = () => (
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/anamnese" element={<Anamnese />} />
             <Route path="/treino" element={<Treino />} />
+            <Route path="/treino/execucao/:workoutId" element={<WorkoutExecution />} />
             <Route path="/dieta" element={<Dieta />} />
             <Route path="/shopping" element={<Shopping />} />
             <Route path="/perfil" element={<Perfil />} />
