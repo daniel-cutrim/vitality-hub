@@ -6,6 +6,7 @@ import { DashboardCard } from '@/components/dashboard/DashboardCard';
 import { WeeklyProgress } from '@/components/dashboard/WeeklyProgress';
 import { PremiumBadge } from '@/components/ui/PremiumBadge';
 import { UpgradeModal } from '@/components/modals/UpgradeModal';
+import { WeeklyCheckinModal } from '@/components/modals/WeeklyCheckinModal';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { 
   Dumbbell, 
@@ -20,6 +21,7 @@ import {
 export default function Dashboard() {
   const { profile, isPremium } = useAuth();
   const [showUpgrade, setShowUpgrade] = useState(false);
+  const [showCheckin, setShowCheckin] = useState(false);
 
   const initials = profile?.full_name
     ?.split(' ')
@@ -106,14 +108,15 @@ export default function Dashboard() {
         />
 
         <DashboardCard
-          to={isPremium ? "/checkin" : "#"}
+          to="#"
           icon={CalendarCheck}
           title="Checkin Semanal"
           subtitle="Último: 3 dias atrás"
           delay={0.25}
           badge={!isPremium && <Lock className="w-4 h-4 text-muted-foreground" />}
           locked={!isPremium}
-          onLockedClick={handleLockedFeature}
+          onLockedClick={isPremium ? () => setShowCheckin(true) : handleLockedFeature}
+          onClick={isPremium ? () => setShowCheckin(true) : undefined}
         />
 
         <DashboardCard
@@ -139,8 +142,9 @@ export default function Dashboard() {
       {/* Weekly Progress */}
       <WeeklyProgress completedDays={completedDays} />
 
-      {/* Upgrade Modal */}
+      {/* Modals */}
       <UpgradeModal open={showUpgrade} onOpenChange={setShowUpgrade} />
+      <WeeklyCheckinModal open={showCheckin} onOpenChange={setShowCheckin} />
     </AppLayout>
   );
 }
