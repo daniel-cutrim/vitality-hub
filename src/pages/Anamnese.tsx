@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { usePhotoUpload } from "@/hooks/usePhotoUpload";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -91,6 +92,7 @@ const locaisTreino = [
 export default function Anamnese() {
   const navigate = useNavigate();
   const { user, isPremium } = useAuth();
+  const { uploadMultiplePhotos, uploading } = usePhotoUpload();
   const [currentStep, setCurrentStep] = useState<Step>(1);
   const [isLoading, setIsLoading] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
@@ -184,11 +186,18 @@ export default function Anamnese() {
     setIsLoading(true);
 
     try {
+      // Upload photos if any
+      let photoUrls: string[] = [];
+      if (fotos.length > 0) {
+        photoUrls = await uploadMultiplePhotos(fotos, user.id, 'anamnese');
+      }
+
       const { error } = await supabase.from("anamnese").insert([{
         user_id: user.id,
         dados_pessoais: JSON.parse(JSON.stringify(dadosPessoais)) as Json,
         historico_saude: JSON.parse(JSON.stringify(historicoSaude)) as Json,
         rotina: JSON.parse(JSON.stringify(rotina)) as Json,
+        fotos_iniciais: photoUrls,
         status: "pendente",
       }]);
 

@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { usePhotoUpload } from '@/hooks/usePhotoUpload';
 import { Camera, X, Loader2, CheckCircle } from 'lucide-react';
 
 interface WeeklyCheckinModalProps {
@@ -26,6 +27,7 @@ const emojis = [
 export function WeeklyCheckinModal({ open, onOpenChange }: WeeklyCheckinModalProps) {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { uploadMultiplePhotos, uploading } = usePhotoUpload();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -68,6 +70,12 @@ export function WeeklyCheckinModal({ open, onOpenChange }: WeeklyCheckinModalPro
 
     setLoading(true);
     try {
+      // Upload photos if any
+      let photoUrls: string[] = [];
+      if (fotos.length > 0) {
+        photoUrls = await uploadMultiplePhotos(fotos, user.id, 'checkin');
+      }
+
       // Get start of current week (Monday)
       const now = new Date();
       const dayOfWeek = now.getDay();
@@ -83,7 +91,7 @@ export function WeeklyCheckinModal({ open, onOpenChange }: WeeklyCheckinModalPro
           sentimento,
           dificuldades: `Como me senti: ${comoSeSentiu}\n\nDificuldades: ${dificuldades}`,
           peso_atual: peso ? parseFloat(peso) : null,
-          fotos_evolucao: [], // Would need storage bucket for actual photos
+          fotos_evolucao: photoUrls,
         });
 
       if (error) throw error;
@@ -323,13 +331,13 @@ export function WeeklyCheckinModal({ open, onOpenChange }: WeeklyCheckinModalPro
                 ) : (
                   <Button
                     onClick={handleSubmit}
-                    disabled={loading}
+                    disabled={loading || uploading}
                     className="flex-1"
                   >
-                    {loading ? (
+                    {loading || uploading ? (
                       <>
                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Enviando...
+                        {uploading ? 'Enviando fotos...' : 'Salvando...'}
                       </>
                     ) : (
                       'Enviar Checkin'
