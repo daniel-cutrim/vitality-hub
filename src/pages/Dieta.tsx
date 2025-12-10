@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { 
   Coffee, 
   Sun, 
@@ -11,10 +12,12 @@ import {
   Plus,
   ChevronRight,
   Lock,
-  Flame
+  Flame,
+  Check
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { UpgradeModal } from '@/components/modals/UpgradeModal';
+import { MealLogModal } from '@/components/modals/MealLogModal';
 
 interface Meal {
   id: number;
@@ -71,14 +74,40 @@ const mockMeals: Meal[] = [
 ];
 
 export default function Dieta() {
-  const { isPremium } = useAuth();
+  const { isPremium, user } = useAuth();
   const [showUpgrade, setShowUpgrade] = useState(false);
+  const [selectedMeal, setSelectedMeal] = useState<Meal | null>(null);
+  const [loggedMeals, setLoggedMeals] = useState<string[]>([]);
+
+  const fetchLoggedMeals = async () => {
+    if (!user) return;
+    
+    const today = new Date().toISOString().split('T')[0];
+    const { data } = await supabase
+      .from('checkin_dieta')
+      .select('refeicao')
+      .eq('user_id', user.id)
+      .eq('data', today);
+    
+    if (data) {
+      setLoggedMeals(data.map(d => d.refeicao));
+    }
+  };
+
+  useEffect(() => {
+    fetchLoggedMeals();
+  }, [user]);
+
+  const mealsWithStatus = mockMeals.map(meal => ({
+    ...meal,
+    logged: loggedMeals.includes(meal.type)
+  }));
 
   const totalCalories = 2000;
-  const consumedCalories = mockMeals.filter(m => m.logged).reduce((acc, m) => acc + m.calories, 0);
+  const consumedCalories = mealsWithStatus.filter(m => m.logged).reduce((acc, m) => acc + m.calories, 0);
   const progress = (consumedCalories / totalCalories) * 100;
 
-  const totalMacros = mockMeals.filter(m => m.logged).reduce(
+  const totalMacros = mealsWithStatus.filter(m => m.logged).reduce(
     (acc, m) => ({
       p: acc.p + m.macros.p,
       c: acc.c + m.macros.c,
@@ -169,7 +198,7 @@ export default function Dieta() {
         <div className="absolute left-6 top-0 bottom-0 w-0.5 bg-border" />
         
         <div className="space-y-4">
-          {mockMeals.map((meal, index) => {
+          {mealsWithStatus.map((meal, index) => {
             const Icon = meal.icon;
             
             return (
@@ -187,7 +216,7 @@ export default function Dieta() {
                   "absolute left-0 w-12 h-12 rounded-full flex items-center justify-center z-10",
                   meal.logged ? "bg-primary text-primary-foreground" : "bg-card border-2 border-border"
                 )}>
-                  <Icon className="w-5 h-5" />
+                  {meal.logged ? <Check className="w-5 h-5" /> : <Icon className="w-5 h-5" />}
                 </div>
 
                 <div className="bg-card rounded-xl border border-border p-4">
@@ -215,8 +244,18 @@ export default function Dieta() {
                     ))}
                   </div>
 
-                  {!meal.logged && (
-                    <Button variant="outline" size="sm" className="w-full">
+                  {meal.logged ? (
+                    <div className="flex items-center justify-center gap-2 py-2 text-primary">
+                      <Check className="w-4 h-4" />
+                      <span className="text-sm font-medium">Registrado</span>
+                    </div>
+                  ) : (
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="w-full"
+                      onClick={() => setSelectedMeal(meal)}
+                    >
                       <Plus className="w-4 h-4 mr-2" />
                       Registrar Refeição
                     </Button>
@@ -229,6 +268,15 @@ export default function Dieta() {
       </div>
 
       <UpgradeModal open={showUpgrade} onOpenChange={setShowUpgrade} />
+      
+      {selectedMeal && (
+        <MealLogModal
+          open={!!selectedMeal}
+          onOpenChange={(open) => !open && setSelectedMeal(null)}
+          meal={selectedMeal}
+          onSuccess={fetchLoggedMeals}
+        />
+      )}
     </AppLayout>
   );
 }
