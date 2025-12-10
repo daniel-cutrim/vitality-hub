@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { 
   Dumbbell, 
   ChevronRight, 
@@ -11,10 +12,12 @@ import {
   Clock, 
   CheckCircle2,
   Target,
-  Lock
+  Lock,
+  Calendar
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { UpgradeModal } from '@/components/modals/UpgradeModal';
+import { WorkoutDetailModal } from '@/components/modals/WorkoutDetailModal';
 
 interface WorkoutDay {
   id: number;
@@ -27,9 +30,9 @@ interface WorkoutDay {
 }
 
 const mockWorkouts: WorkoutDay[] = [
-  { id: 1, day: 'Segunda', name: 'Treino A', muscles: 'Peito + Tríceps', exercises: 6, duration: '45 min', completed: true },
-  { id: 2, day: 'Terça', name: 'Treino B', muscles: 'Costas + Bíceps', exercises: 6, duration: '50 min', completed: true },
-  { id: 3, day: 'Quarta', name: 'Descanso', muscles: 'Recuperação', exercises: 0, duration: '-', completed: true },
+  { id: 1, day: 'Segunda', name: 'Treino A', muscles: 'Peito + Tríceps', exercises: 6, duration: '45 min', completed: false },
+  { id: 2, day: 'Terça', name: 'Treino B', muscles: 'Costas + Bíceps', exercises: 6, duration: '50 min', completed: false },
+  { id: 3, day: 'Quarta', name: 'Descanso', muscles: 'Recuperação', exercises: 0, duration: '-', completed: false },
   { id: 4, day: 'Quinta', name: 'Treino C', muscles: 'Pernas + Glúteos', exercises: 7, duration: '55 min', completed: false },
   { id: 5, day: 'Sexta', name: 'Treino A', muscles: 'Peito + Tríceps', exercises: 6, duration: '45 min', completed: false },
   { id: 6, day: 'Sábado', name: 'Treino D', muscles: 'Ombros + Core', exercises: 5, duration: '40 min', completed: false },
@@ -37,18 +40,60 @@ const mockWorkouts: WorkoutDay[] = [
 ];
 
 export default function Treino() {
-  const { isPremium } = useAuth();
+  const { isPremium, user } = useAuth();
   const navigate = useNavigate();
   const [showUpgrade, setShowUpgrade] = useState(false);
+  const [selectedWorkout, setSelectedWorkout] = useState<WorkoutDay | null>(null);
+  const [completedDays, setCompletedDays] = useState<string[]>([]);
+  
   const today = new Date().getDay();
   const adjustedToday = today === 0 ? 6 : today - 1;
+
+  const fetchCompletedWorkouts = async () => {
+    if (!user) return;
+    
+    const startOfWeek = new Date();
+    startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay() + 1);
+    const startDate = startOfWeek.toISOString().split('T')[0];
+    
+    const { data } = await supabase
+      .from('checkin_treino')
+      .select('data')
+      .eq('user_id', user.id)
+      .gte('data', startDate)
+      .eq('treino_completo', true);
+    
+    if (data) {
+      const days = data.map(d => {
+        const date = new Date(d.data!);
+        const dayIndex = date.getDay();
+        const adjustedDay = dayIndex === 0 ? 6 : dayIndex - 1;
+        return mockWorkouts[adjustedDay]?.day;
+      }).filter(Boolean);
+      setCompletedDays(days);
+    }
+  };
+
+  useEffect(() => {
+    fetchCompletedWorkouts();
+  }, [user]);
+
+  const workoutsWithStatus = mockWorkouts.map((workout, index) => ({
+    ...workout,
+    completed: completedDays.includes(workout.day) && index < adjustedToday
+  }));
 
   const handleStartWorkout = (workout: WorkoutDay) => {
     if (!isPremium) {
       setShowUpgrade(true);
       return;
     }
+    setSelectedWorkout(null);
     navigate(`/treino/execucao/${workout.id}`);
+  };
+
+  const handleWorkoutClick = (workout: WorkoutDay) => {
+    setSelectedWorkout(workout);
   };
 
   return (
@@ -87,8 +132,47 @@ export default function Treino() {
         </motion.div>
       )}
 
+      {/* Week Overview */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+        className="bg-card rounded-xl border border-border p-4 mb-6"
+      >
+        <div className="flex items-center gap-2 mb-3">
+          <Calendar className="w-5 h-5 text-primary" />
+          <span className="font-semibold text-foreground">Progresso Semanal</span>
+        </div>
+        <div className="flex gap-1">
+          {workoutsWithStatus.map((workout, index) => {
+            const isToday = index === adjustedToday;
+            const isRest = workout.exercises === 0;
+            
+            return (
+              <div
+                key={workout.id}
+                className={cn(
+                  "flex-1 h-2 rounded-full transition-all",
+                  workout.completed 
+                    ? "bg-primary" 
+                    : isToday
+                      ? "bg-primary/40"
+                      : isRest
+                        ? "bg-secondary"
+                        : "bg-border"
+                )}
+              />
+            );
+          })}
+        </div>
+        <div className="flex justify-between mt-2">
+          <span className="text-xs text-muted-foreground">Seg</span>
+          <span className="text-xs text-muted-foreground">Dom</span>
+        </div>
+      </motion.div>
+
       <div className="space-y-3">
-        {mockWorkouts.map((workout, index) => {
+        {workoutsWithStatus.map((workout, index) => {
           const isToday = index === adjustedToday;
           const isRest = workout.exercises === 0;
 
@@ -98,8 +182,9 @@ export default function Treino() {
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: index * 0.05 }}
+              onClick={() => handleWorkoutClick(workout)}
               className={cn(
-                "bg-card rounded-xl border p-4 transition-all",
+                "bg-card rounded-xl border p-4 transition-all cursor-pointer active:scale-[0.98]",
                 isToday ? "border-primary shadow-md" : "border-border",
                 workout.completed && !isToday && "opacity-60"
               )}
@@ -149,7 +234,10 @@ export default function Treino() {
                     {isToday && (
                       <Button 
                         size="sm" 
-                        onClick={() => handleStartWorkout(workout)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleStartWorkout(workout);
+                        }}
                         className="btn-primary-gradient"
                       >
                         <Play className="w-4 h-4 mr-1" />
@@ -159,7 +247,7 @@ export default function Treino() {
                   </div>
                 )}
 
-                {!isRest && workout.completed && (
+                {(isRest || workout.completed || (!isToday && !workout.completed)) && (
                   <ChevronRight className="w-5 h-5 text-muted-foreground" />
                 )}
               </div>
@@ -169,6 +257,13 @@ export default function Treino() {
       </div>
 
       <UpgradeModal open={showUpgrade} onOpenChange={setShowUpgrade} />
+      
+      <WorkoutDetailModal
+        open={!!selectedWorkout}
+        onOpenChange={(open) => !open && setSelectedWorkout(null)}
+        workout={selectedWorkout}
+        onStartWorkout={() => selectedWorkout && handleStartWorkout(selectedWorkout)}
+      />
     </AppLayout>
   );
 }
