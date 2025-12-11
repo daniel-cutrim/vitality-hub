@@ -11,6 +11,7 @@ import Anamnese from "./pages/Anamnese";
 import Treino from "./pages/Treino";
 import WorkoutExecution from "./pages/WorkoutExecution";
 import Dieta from "./pages/Dieta";
+import Desafios from "./pages/Desafios";
 import Shopping from "./pages/Shopping";
 import Perfil from "./pages/Perfil";
 import NotFound from "./pages/NotFound";
@@ -32,6 +33,7 @@ const App = () => (
             <Route path="/treino" element={<Treino />} />
             <Route path="/treino/execucao/:workoutId" element={<WorkoutExecution />} />
             <Route path="/dieta" element={<Dieta />} />
+            <Route path="/desafios" element={<Desafios />} />
             <Route path="/shopping" element={<Shopping />} />
             <Route path="/perfil" element={<Perfil />} />
             <Route path="*" element={<NotFound />} />

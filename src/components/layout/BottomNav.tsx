@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { Home, Dumbbell, Apple, ShoppingBag, User } from 'lucide-react';
+import { Home, Dumbbell, Apple, Trophy, ShoppingBag, User } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
@@ -7,6 +7,7 @@ const navItems = [
   { to: '/dashboard', icon: Home, label: 'Home' },
   { to: '/treino', icon: Dumbbell, label: 'Treino' },
   { to: '/dieta', icon: Apple, label: 'Dieta' },
+  { to: '/desafios', icon: Trophy, label: 'Desafios' },
   { to: '/shopping', icon: ShoppingBag, label: 'Loja' },
   { to: '/perfil', icon: User, label: 'Perfil' },
 ];
