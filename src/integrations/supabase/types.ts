@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      amigos_ficticios: {
+        Row: {
+          avatar_cor: string
+          avatar_iniciais: string
+          created_at: string | null
+          id: string
+          nivel: number
+          nome: string
+          online: boolean | null
+          pontos: number
+          ultimo_treino: string | null
+        }
+        Insert: {
+          avatar_cor: string
+          avatar_iniciais: string
+          created_at?: string | null
+          id?: string
+          nivel?: number
+          nome: string
+          online?: boolean | null
+          pontos?: number
+          ultimo_treino?: string | null
+        }
+        Update: {
+          avatar_cor?: string
+          avatar_iniciais?: string
+          created_at?: string | null
+          id?: string
+          nivel?: number
+          nome?: string
+          online?: boolean | null
+          pontos?: number
+          ultimo_treino?: string | null
+        }
+        Relationships: []
+      }
       anamnese: {
         Row: {
           created_at: string | null
@@ -57,6 +93,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      badges: {
+        Row: {
+          categoria: Database["public"]["Enums"]["badge_category"]
+          created_at: string | null
+          descricao: string | null
+          icone: string
+          id: string
+          nome: string
+          requisito: string | null
+          requisito_valor: number | null
+        }
+        Insert: {
+          categoria?: Database["public"]["Enums"]["badge_category"]
+          created_at?: string | null
+          descricao?: string | null
+          icone?: string
+          id?: string
+          nome: string
+          requisito?: string | null
+          requisito_valor?: number | null
+        }
+        Update: {
+          categoria?: Database["public"]["Enums"]["badge_category"]
+          created_at?: string | null
+          descricao?: string | null
+          icone?: string
+          id?: string
+          nome?: string
+          requisito?: string | null
+          requisito_valor?: number | null
+        }
+        Relationships: []
       }
       checkin_dieta: {
         Row: {
@@ -178,6 +247,103 @@ export type Database = {
           },
         ]
       }
+      desafios: {
+        Row: {
+          badge_id: string | null
+          created_at: string | null
+          criador_id: string
+          duracao_dias: number
+          fim: string | null
+          id: string
+          inicio: string | null
+          meta: string
+          meta_numero: number
+          nome: string
+          recompensa_pontos: number
+          status: Database["public"]["Enums"]["challenge_status"]
+          tipo: Database["public"]["Enums"]["challenge_type"]
+        }
+        Insert: {
+          badge_id?: string | null
+          created_at?: string | null
+          criador_id: string
+          duracao_dias?: number
+          fim?: string | null
+          id?: string
+          inicio?: string | null
+          meta: string
+          meta_numero: number
+          nome: string
+          recompensa_pontos?: number
+          status?: Database["public"]["Enums"]["challenge_status"]
+          tipo?: Database["public"]["Enums"]["challenge_type"]
+        }
+        Update: {
+          badge_id?: string | null
+          created_at?: string | null
+          criador_id?: string
+          duracao_dias?: number
+          fim?: string | null
+          id?: string
+          inicio?: string | null
+          meta?: string
+          meta_numero?: number
+          nome?: string
+          recompensa_pontos?: number
+          status?: Database["public"]["Enums"]["challenge_status"]
+          tipo?: Database["public"]["Enums"]["challenge_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "desafios_badge_id_fkey"
+            columns: ["badge_id"]
+            isOneToOne: false
+            referencedRelation: "badges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      desafios_participantes: {
+        Row: {
+          aceito: boolean | null
+          concluido: boolean | null
+          created_at: string | null
+          desafio_id: string
+          id: string
+          pontos_ganhos: number | null
+          progresso_atual: number
+          user_id: string
+        }
+        Insert: {
+          aceito?: boolean | null
+          concluido?: boolean | null
+          created_at?: string | null
+          desafio_id: string
+          id?: string
+          pontos_ganhos?: number | null
+          progresso_atual?: number
+          user_id: string
+        }
+        Update: {
+          aceito?: boolean | null
+          concluido?: boolean | null
+          created_at?: string | null
+          desafio_id?: string
+          id?: string
+          pontos_ganhos?: number | null
+          progresso_atual?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "desafios_participantes_desafio_id_fkey"
+            columns: ["desafio_id"]
+            isOneToOne: false
+            referencedRelation: "desafios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       exercicios: {
         Row: {
           created_at: string | null
@@ -211,6 +377,69 @@ export type Database = {
           reps?: string | null
           series?: number | null
           video_url?: string | null
+        }
+        Relationships: []
+      }
+      historico_pontos: {
+        Row: {
+          acao: string
+          created_at: string | null
+          id: string
+          multiplicador: number
+          pontos: number
+          pontos_finais: number
+          referencia_id: string | null
+          referencia_tipo: string | null
+          user_id: string
+        }
+        Insert: {
+          acao: string
+          created_at?: string | null
+          id?: string
+          multiplicador?: number
+          pontos: number
+          pontos_finais: number
+          referencia_id?: string | null
+          referencia_tipo?: string | null
+          user_id: string
+        }
+        Update: {
+          acao?: string
+          created_at?: string | null
+          id?: string
+          multiplicador?: number
+          pontos?: number
+          pontos_finais?: number
+          referencia_id?: string | null
+          referencia_tipo?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      niveis: {
+        Row: {
+          created_at: string | null
+          descricao: string | null
+          id: string
+          nome: string
+          ordem: number
+          pontos_necessarios: number
+        }
+        Insert: {
+          created_at?: string | null
+          descricao?: string | null
+          id?: string
+          nome: string
+          ordem: number
+          pontos_necessarios?: number
+        }
+        Update: {
+          created_at?: string | null
+          descricao?: string | null
+          id?: string
+          nome?: string
+          ordem?: number
+          pontos_necessarios?: number
         }
         Relationships: []
       }
@@ -296,6 +525,45 @@ export type Database = {
           },
         ]
       }
+      pontuacao_usuarios: {
+        Row: {
+          created_at: string | null
+          id: string
+          nivel_atual: number
+          pontos_mes: number
+          pontos_semana: number
+          pontos_totais: number
+          streak_dias: number
+          ultimo_streak_check: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          nivel_atual?: number
+          pontos_mes?: number
+          pontos_semana?: number
+          pontos_totais?: number
+          streak_dias?: number
+          ultimo_streak_check?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          nivel_atual?: number
+          pontos_mes?: number
+          pontos_semana?: number
+          pontos_totais?: number
+          streak_dias?: number
+          ultimo_streak_check?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       produtos_afiliados: {
         Row: {
           ativo: boolean | null
@@ -365,14 +633,74 @@ export type Database = {
         }
         Relationships: []
       }
+      rankings_snapshot: {
+        Row: {
+          atualizado_em: string | null
+          id: string
+          periodo: string
+          pontos: number
+          posicao: number
+          user_id: string
+        }
+        Insert: {
+          atualizado_em?: string | null
+          id?: string
+          periodo: string
+          pontos?: number
+          posicao: number
+          user_id: string
+        }
+        Update: {
+          atualizado_em?: string | null
+          id?: string
+          periodo?: string
+          pontos?: number
+          posicao?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      usuarios_badges: {
+        Row: {
+          badge_id: string
+          conquistado_em: string | null
+          id: string
+          user_id: string
+        }
+        Insert: {
+          badge_id: string
+          conquistado_em?: string | null
+          id?: string
+          user_id: string
+        }
+        Update: {
+          badge_id?: string
+          conquistado_em?: string | null
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "usuarios_badges_badge_id_fkey"
+            columns: ["badge_id"]
+            isOneToOne: false
+            referencedRelation: "badges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_streak_multiplier: { Args: { streak_dias: number }; Returns: number }
+      get_user_level: { Args: { pontos: number }; Returns: number }
     }
     Enums: {
+      badge_category: "conquistas" | "desafios" | "rankings" | "especiais"
+      challenge_status: "ativo" | "concluido" | "cancelado"
+      challenge_type: "individual" | "versus" | "grupo"
       user_plan_type: "free" | "premium"
     }
     CompositeTypes: {
@@ -501,6 +829,9 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      badge_category: ["conquistas", "desafios", "rankings", "especiais"],
+      challenge_status: ["ativo", "concluido", "cancelado"],
+      challenge_type: ["individual", "versus", "grupo"],
       user_plan_type: ["free", "premium"],
     },
   },
