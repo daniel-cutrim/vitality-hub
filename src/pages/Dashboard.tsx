@@ -7,6 +7,7 @@ import { WeeklyProgress } from '@/components/dashboard/WeeklyProgress';
 import { PremiumBadge } from '@/components/ui/PremiumBadge';
 import { UpgradeModal } from '@/components/modals/UpgradeModal';
 import { WeeklyCheckinModal } from '@/components/modals/WeeklyCheckinModal';
+import { GamificationDashboardCard } from '@/components/gamification/GamificationDashboardCard';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { 
   Dumbbell, 
@@ -87,6 +88,16 @@ export default function Dashboard() {
           <p className="text-2xl font-bold text-primary">4</p>
           <p className="text-xs text-muted-foreground">Dias Streak</p>
         </div>
+      </motion.div>
+
+      {/* Gamification Card */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.12 }}
+        className="mb-6"
+      >
+        <GamificationDashboardCard />
       </motion.div>
 
       {/* Menu Cards */}
