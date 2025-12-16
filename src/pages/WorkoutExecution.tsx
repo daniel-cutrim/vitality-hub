@@ -18,80 +18,17 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useGamification } from '@/hooks/useGamification';
+import { useCustomWorkouts } from '@/hooks/useCustomWorkouts';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 
 interface Exercise {
-  id: number;
+  id: string;
   name: string;
   sets: number;
   reps: string;
   restSeconds: number;
-  videoUrl: string;
   muscleGroup: string;
-  instructions: string;
 }
-
-const mockExercises: Exercise[] = [
-  {
-    id: 1,
-    name: 'Supino Reto com Barra',
-    sets: 4,
-    reps: '8-12',
-    restSeconds: 90,
-    videoUrl: 'https://www.youtube.com/embed/rT7DgCr-3pg',
-    muscleGroup: 'Peito',
-    instructions: 'Mantenha os pés firmes no chão e desça a barra até o peito.'
-  },
-  {
-    id: 2,
-    name: 'Supino Inclinado com Halteres',
-    sets: 3,
-    reps: '10-12',
-    restSeconds: 60,
-    videoUrl: 'https://www.youtube.com/embed/8iPEnn-ltC8',
-    muscleGroup: 'Peito Superior',
-    instructions: 'Incline o banco em 30-45 graus. Controle a descida dos halteres.'
-  },
-  {
-    id: 3,
-    name: 'Crucifixo na Máquina',
-    sets: 3,
-    reps: '12-15',
-    restSeconds: 60,
-    videoUrl: 'https://www.youtube.com/embed/Z57CtFmRMxA',
-    muscleGroup: 'Peito',
-    instructions: 'Foque na contração do peitoral ao juntar os braços.'
-  },
-  {
-    id: 4,
-    name: 'Tríceps Pulley',
-    sets: 3,
-    reps: '12-15',
-    restSeconds: 60,
-    videoUrl: 'https://www.youtube.com/embed/2-LAMcpzODU',
-    muscleGroup: 'Tríceps',
-    instructions: 'Mantenha os cotovelos fixos ao lado do corpo.'
-  },
-  {
-    id: 5,
-    name: 'Tríceps Francês',
-    sets: 3,
-    reps: '10-12',
-    restSeconds: 60,
-    videoUrl: 'https://www.youtube.com/embed/ir5PsbniVSc',
-    muscleGroup: 'Tríceps',
-    instructions: 'Desça o halter atrás da cabeça com controle.'
-  },
-  {
-    id: 6,
-    name: 'Mergulho no Banco',
-    sets: 3,
-    reps: '10-15',
-    restSeconds: 60,
-    videoUrl: 'https://www.youtube.com/embed/c3ZGl4pAwZ4',
-    muscleGroup: 'Tríceps',
-    instructions: 'Desça até os cotovelos formarem 90 graus.'
-  }
-];
 
 type WorkoutPhase = 'exercise' | 'rest' | 'completed';
 
@@ -99,6 +36,7 @@ export default function WorkoutExecution() {
   const navigate = useNavigate();
   const { workoutId } = useParams();
   const { addPoints, updateStreak, pontuacao, getStreakMultiplier } = useGamification();
+  const { workouts, isLoading } = useCustomWorkouts();
   
   const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0);
   const [currentSet, setCurrentSet] = useState(1);
@@ -112,9 +50,16 @@ export default function WorkoutExecution() {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  const currentExercise = mockExercises[currentExerciseIndex];
-  const totalExercises = mockExercises.length;
-  const progress = ((currentExerciseIndex + (completedSets.length / currentExercise.sets)) / totalExercises) * 100;
+  // Get workout by workoutId (which is dayOfWeek + 1)
+  const dayIndex = workoutId ? parseInt(workoutId) - 1 : 0;
+  const currentWorkout = workouts.find(w => w.dayOfWeek === dayIndex);
+  const exercises: Exercise[] = currentWorkout?.exercises || [];
+  
+  const currentExercise = exercises[currentExerciseIndex];
+  const totalExercises = exercises.length;
+  const progress = currentExercise 
+    ? ((currentExerciseIndex + (completedSets.length / currentExercise.sets)) / totalExercises) * 100 
+    : 0;
   const streakMultiplier = pontuacao ? getStreakMultiplier(pontuacao.streak_dias) : 1;
 
   // Initialize audio
@@ -225,6 +170,25 @@ export default function WorkoutExecution() {
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <LoadingSpinner />
+      </div>
+    );
+  }
+
+  if (!currentExercise || exercises.length === 0) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6">
+        <p className="text-muted-foreground mb-4">Nenhum exercício encontrado para este treino.</p>
+        <Button onClick={() => navigate('/treino')} variant="outline">
+          Voltar ao Plano
+        </Button>
+      </div>
+    );
+  }
 
   if (phase === 'completed') {
     return (
@@ -373,22 +337,25 @@ export default function WorkoutExecution() {
               exit={{ opacity: 0, x: -20 }}
               className="flex-1 flex flex-col"
             >
-              {/* Video */}
-              <div className="relative aspect-video bg-secondary">
-                <iframe
-                  src={currentExercise.videoUrl}
-                  title={currentExercise.name}
-                  className="absolute inset-0 w-full h-full"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                />
+              {/* Exercise Visual */}
+              <div className="relative aspect-video bg-gradient-to-br from-primary/5 to-primary/10 flex items-center justify-center">
+                <div className="text-center p-6">
+                  <div className="w-20 h-20 rounded-full bg-primary/20 flex items-center justify-center mx-auto mb-4">
+                    <span className="text-3xl font-bold text-primary">{currentExerciseIndex + 1}</span>
+                  </div>
+                  <span className="px-3 py-1 rounded-full bg-primary/20 text-primary text-sm font-medium">
+                    {currentExercise.muscleGroup}
+                  </span>
+                </div>
               </div>
 
               {/* Exercise Info */}
               <div className="flex-1 p-4 space-y-4">
                 <div>
                   <h2 className="text-xl font-bold text-foreground">{currentExercise.name}</h2>
-                  <p className="text-sm text-muted-foreground mt-1">{currentExercise.instructions}</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {currentExercise.sets} séries · {currentExercise.reps} reps · {currentExercise.restSeconds}s descanso
+                  </p>
                 </div>
 
                 {/* Sets Counter */}
