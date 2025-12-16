@@ -5,6 +5,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { useCustomWorkouts } from '@/hooks/useCustomWorkouts';
 import { 
   Dumbbell, 
   ChevronRight, 
@@ -13,38 +14,28 @@ import {
   CheckCircle2,
   Target,
   Lock,
-  Calendar
+  Calendar,
+  Edit3,
+  Settings2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { UpgradeModal } from '@/components/modals/UpgradeModal';
 import { WorkoutDetailModal } from '@/components/modals/WorkoutDetailModal';
+import { EditWorkoutModal, type CustomWorkout } from '@/components/modals/EditWorkoutModal';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 
-interface WorkoutDay {
-  id: number;
-  day: string;
-  name: string;
-  muscles: string;
-  exercises: number;
-  duration: string;
-  completed: boolean;
-}
-
-const mockWorkouts: WorkoutDay[] = [
-  { id: 1, day: 'Segunda', name: 'Treino A', muscles: 'Peito + Tríceps', exercises: 6, duration: '45 min', completed: false },
-  { id: 2, day: 'Terça', name: 'Treino B', muscles: 'Costas + Bíceps', exercises: 6, duration: '50 min', completed: false },
-  { id: 3, day: 'Quarta', name: 'Descanso', muscles: 'Recuperação', exercises: 0, duration: '-', completed: false },
-  { id: 4, day: 'Quinta', name: 'Treino C', muscles: 'Pernas + Glúteos', exercises: 7, duration: '55 min', completed: false },
-  { id: 5, day: 'Sexta', name: 'Treino A', muscles: 'Peito + Tríceps', exercises: 6, duration: '45 min', completed: false },
-  { id: 6, day: 'Sábado', name: 'Treino D', muscles: 'Ombros + Core', exercises: 5, duration: '40 min', completed: false },
-  { id: 7, day: 'Domingo', name: 'Descanso', muscles: 'Recuperação', exercises: 0, duration: '-', completed: false },
-];
+const DAYS_MAP = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
 
 export default function Treino() {
   const { isPremium, user } = useAuth();
   const navigate = useNavigate();
+  const { workouts, isLoading, updateWorkout, getDayLabel } = useCustomWorkouts();
   const [showUpgrade, setShowUpgrade] = useState(false);
-  const [selectedWorkout, setSelectedWorkout] = useState<WorkoutDay | null>(null);
+  const [selectedWorkout, setSelectedWorkout] = useState<CustomWorkout | null>(null);
+  const [editingWorkout, setEditingWorkout] = useState<CustomWorkout | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [completedDays, setCompletedDays] = useState<string[]>([]);
+  const [isEditMode, setIsEditMode] = useState(false);
   
   const today = new Date().getDay();
   const adjustedToday = today === 0 ? 6 : today - 1;
@@ -68,7 +59,7 @@ export default function Treino() {
         const date = new Date(d.data!);
         const dayIndex = date.getDay();
         const adjustedDay = dayIndex === 0 ? 6 : dayIndex - 1;
-        return mockWorkouts[adjustedDay]?.day;
+        return DAYS_MAP[adjustedDay];
       }).filter(Boolean);
       setCompletedDays(days);
     }
@@ -78,23 +69,45 @@ export default function Treino() {
     fetchCompletedWorkouts();
   }, [user]);
 
-  const workoutsWithStatus = mockWorkouts.map((workout, index) => ({
+  const workoutsWithStatus = workouts.map((workout, index) => ({
     ...workout,
-    completed: completedDays.includes(workout.day) && index < adjustedToday
+    day: getDayLabel(workout.dayOfWeek),
+    completed: completedDays.includes(getDayLabel(workout.dayOfWeek)) && index < adjustedToday
   }));
 
-  const handleStartWorkout = (workout: WorkoutDay) => {
+  const handleStartWorkout = (workout: CustomWorkout & { day: string }) => {
     if (!isPremium) {
       setShowUpgrade(true);
       return;
     }
     setSelectedWorkout(null);
-    navigate(`/treino/execucao/${workout.id}`);
+    navigate(`/treino/execucao/${workout.dayOfWeek + 1}`);
   };
 
-  const handleWorkoutClick = (workout: WorkoutDay) => {
-    setSelectedWorkout(workout);
+  const handleWorkoutClick = (workout: CustomWorkout & { day: string }) => {
+    if (isEditMode) {
+      setEditingWorkout(workout);
+      setShowEditModal(true);
+    } else {
+      setSelectedWorkout(workout);
+    }
   };
+
+  const handleSaveWorkout = async (updatedWorkout: CustomWorkout) => {
+    await updateWorkout(updatedWorkout);
+    setShowEditModal(false);
+    setEditingWorkout(null);
+  };
+
+  if (isLoading) {
+    return (
+      <AppLayout>
+        <div className="flex items-center justify-center h-64">
+          <LoadingSpinner />
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>
@@ -103,11 +116,51 @@ export default function Treino() {
         animate={{ opacity: 1, y: 0 }}
         className="mb-6"
       >
-        <h1 className="text-2xl font-bold text-foreground">Plano de Treino</h1>
-        <p className="text-muted-foreground">Sua semana de treinos</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Plano de Treino</h1>
+            <p className="text-muted-foreground">Sua semana de treinos</p>
+          </div>
+          <Button
+            variant={isEditMode ? "default" : "outline"}
+            size="sm"
+            onClick={() => setIsEditMode(!isEditMode)}
+            className={cn(
+              isEditMode && "btn-primary-gradient"
+            )}
+          >
+            {isEditMode ? (
+              <>
+                <CheckCircle2 className="w-4 h-4 mr-1" />
+                Concluir
+              </>
+            ) : (
+              <>
+                <Settings2 className="w-4 h-4 mr-1" />
+                Personalizar
+              </>
+            )}
+          </Button>
+        </div>
       </motion.div>
 
-      {!isPremium && (
+      {isEditMode && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-primary/10 border border-primary/20 rounded-xl p-4 mb-6"
+        >
+          <div className="flex items-center gap-2">
+            <Edit3 className="w-5 h-5 text-primary" />
+            <div>
+              <p className="font-medium text-foreground">Modo de Edição</p>
+              <p className="text-sm text-muted-foreground">Toque em um dia para editar o treino</p>
+            </div>
+          </div>
+        </motion.div>
+      )}
+
+      {!isPremium && !isEditMode && (
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -146,7 +199,7 @@ export default function Treino() {
         <div className="flex gap-1">
           {workoutsWithStatus.map((workout, index) => {
             const isToday = index === adjustedToday;
-            const isRest = workout.exercises === 0;
+            const isRest = workout.isRest;
             
             return (
               <div
@@ -174,7 +227,8 @@ export default function Treino() {
       <div className="space-y-3">
         {workoutsWithStatus.map((workout, index) => {
           const isToday = index === adjustedToday;
-          const isRest = workout.exercises === 0;
+          const isRest = workout.isRest;
+          const exerciseCount = workout.exercises?.length || 0;
 
           return (
             <motion.div
@@ -186,7 +240,8 @@ export default function Treino() {
               className={cn(
                 "bg-card rounded-xl border p-4 transition-all cursor-pointer active:scale-[0.98]",
                 isToday ? "border-primary shadow-md" : "border-border",
-                workout.completed && !isToday && "opacity-60"
+                workout.completed && !isToday && "opacity-60",
+                isEditMode && "ring-2 ring-primary/20 hover:ring-primary/40"
               )}
             >
               <div className="flex items-center gap-4">
@@ -198,7 +253,9 @@ export default function Treino() {
                       ? "bg-secondary" 
                       : "bg-accent"
                 )}>
-                  {workout.completed ? (
+                  {isEditMode ? (
+                    <Edit3 className="w-5 h-5 text-primary" />
+                  ) : workout.completed ? (
                     <CheckCircle2 className="w-6 h-6 text-primary" />
                   ) : isRest ? (
                     <Clock className="w-6 h-6 text-muted-foreground" />
@@ -217,7 +274,7 @@ export default function Treino() {
                     )}>
                       {workout.day}
                     </span>
-                    {isToday && (
+                    {isToday && !isEditMode && (
                       <span className="text-xs text-primary font-medium">Hoje</span>
                     )}
                   </div>
@@ -225,11 +282,11 @@ export default function Treino() {
                   <p className="text-sm text-muted-foreground">{workout.muscles}</p>
                 </div>
 
-                {!isRest && !workout.completed && (
+                {!isRest && !workout.completed && !isEditMode && (
                   <div className="text-right flex-shrink-0">
                     <div className="flex items-center gap-1 text-sm text-muted-foreground mb-1">
                       <Target className="w-4 h-4" />
-                      {workout.exercises} ex
+                      {exerciseCount} ex
                     </div>
                     {isToday && (
                       <Button 
@@ -247,8 +304,15 @@ export default function Treino() {
                   </div>
                 )}
 
-                {(isRest || workout.completed || (!isToday && !workout.completed)) && (
+                {!isEditMode && (isRest || workout.completed || (!isToday && !workout.completed)) && (
                   <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                )}
+
+                {isEditMode && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-primary font-medium">Editar</span>
+                    <ChevronRight className="w-5 h-5 text-primary" />
+                  </div>
                 )}
               </div>
             </motion.div>
@@ -259,10 +323,27 @@ export default function Treino() {
       <UpgradeModal open={showUpgrade} onOpenChange={setShowUpgrade} />
       
       <WorkoutDetailModal
-        open={!!selectedWorkout}
+        open={!!selectedWorkout && !isEditMode}
         onOpenChange={(open) => !open && setSelectedWorkout(null)}
-        workout={selectedWorkout}
-        onStartWorkout={() => selectedWorkout && handleStartWorkout(selectedWorkout)}
+        workout={selectedWorkout ? {
+          id: selectedWorkout.dayOfWeek + 1,
+          day: getDayLabel(selectedWorkout.dayOfWeek),
+          name: selectedWorkout.name,
+          muscles: selectedWorkout.muscles,
+          exercises: selectedWorkout.exercises?.length || 0,
+          duration: `${Math.round((selectedWorkout.exercises?.length || 0) * 5)} min`,
+        } : null}
+        onStartWorkout={() => selectedWorkout && handleStartWorkout({
+          ...selectedWorkout,
+          day: getDayLabel(selectedWorkout.dayOfWeek)
+        })}
+      />
+
+      <EditWorkoutModal
+        open={showEditModal}
+        onOpenChange={setShowEditModal}
+        workout={editingWorkout}
+        onSave={handleSaveWorkout}
       />
     </AppLayout>
   );
